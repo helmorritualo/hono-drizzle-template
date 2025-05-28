@@ -36,7 +36,7 @@ npm run dev
 ## 📁 Project Structure
 
 ```
-my-hono-drizzle-template/
+hono-drizzle-template/
 ├── src/
 │   ├── config/                 # Configuration files
 │   │   ├── database.ts         # Database connection setup
