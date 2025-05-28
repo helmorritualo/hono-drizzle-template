@@ -134,7 +134,6 @@ Models contain data access logic and interact with the database using Drizzle OR
 
 Define your API routes in separate files and aggregate them in `controllers/routes.ts`.
 
-
 ### 4. Middleware
 
 Create reusable middleware for cross-cutting concerns like authentication, logging, etc.
@@ -221,4 +220,5 @@ If you have any questions or need help with the template, please:
 2. Create a new issue if your question hasn't been answered
 
 ---
+
 **Happy coding! 🎉**
