@@ -1,8 +1,9 @@
 import { cleanupExpiredTokens } from "@/models/auth.model";
 
 const cleanExpiredToken = async () => {
-  // Setup cleanup for expired refresh tokens (run once a day)
-  setInterval(async () => {
+  const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000; // 24 hours
+
+  const runCleanup = async () => {
     console.log("🧹 Starting cleanup of expired refresh tokens...");
     try {
       await cleanupExpiredTokens();
@@ -12,15 +13,15 @@ const cleanExpiredToken = async () => {
     } finally {
       console.log("🧹 Cleanup completed");
     }
-  }, 24 * 60 * 60 * 1000); // Once a day (24 hours in milliseconds)
+  };
 
-  // Initial cleanup when the job starts
-  try {
-    await cleanupExpiredTokens();
-    console.log("🧹 Initial cleanup of expired refresh tokens completed");
-  } catch (error) {
-    console.error("❌ Error during initial token cleanup:", error);
-  }
+  // First execution after 24 hours
+  setTimeout(async () => {
+    await runCleanup();
+
+    // Then run every 24 hours
+    setInterval(runCleanup, TWENTY_FOUR_HOURS);
+  }, TWENTY_FOUR_HOURS);
 };
 
 export default cleanExpiredToken;
