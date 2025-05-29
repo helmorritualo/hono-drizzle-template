@@ -10,6 +10,7 @@ import { routes } from "./controllers/routes";
 import { PORT } from "./config/env";
 import { databaseConnection } from "./config/database";
 import cleanExpiredToken from "./jobs/clean-expired-tokens";
+import cachingMiddleware from "./middlewares/cache.middleware";
 
 const app = new Hono<{ Variables: JwtVariables }>();
 
@@ -28,6 +29,7 @@ app.use(
     maxAge: 600,
   })
 );
+app.use("*", cachingMiddleware());
 app.onError(errorHandlerMiddleware); // Custom error handler
 
 // Routes
