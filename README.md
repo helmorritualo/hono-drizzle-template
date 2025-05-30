@@ -14,7 +14,6 @@ A project-ready template for building modern Node.js APIs using [Hono](https://h
 - 🔄 **Token Refresh** - Automatic token rotation
 - 🧹 **Cleanup Jobs** - Expired token cleanup
 - 🗄️ **MySQL Support** - Pre-configured for MySQL
-- 🚀 **Smart Caching** - Intelligent caching strategies for different content types
 
 ## 🚀 Quick Start
 
@@ -40,7 +39,6 @@ npm run dev
 hono-drizzle-template/
 ├── src/
 │   ├── config/                 # Configuration files
-│   │   ├── cache.ts            # Caching strategies configuration
 │   │   ├── database.ts         # Database connection setup
 │   │   └── env.ts              # Environment variables
 │   ├── controllers/            # Route controllers
@@ -58,7 +56,6 @@ hono-drizzle-template/
 │   │   └── clean-expired-tokens.ts
 │   ├── middlewares/            # Custom middlewares
 │   │   ├── authentication.ts   # JWT authentication middleware
-│   │   ├── cache.middleware.ts # Smart caching middleware
 │   │   └── error-handler.ts    # Global error handler
 │   ├── models/                 # Data access layer
 │   │   └── auth.model.ts       # Authentication model
@@ -167,83 +164,6 @@ GET /api/v1/profile            # Get user profile (requires auth)
 - **Token Rotation**: Automatic refresh token rotation
 - **Input Validation**: Zod integration ready for request validation
 
-## 🚀 Caching System
-
-This template includes a smart caching middleware that automatically applies different caching strategies based on route patterns and content types.
-
-### Caching Strategies
-
-The caching system provides four pre-configured strategies:
-
-#### 1. Static Content (24 hours)
-
-- **Route patterns**: `/static`, `/public`, `/assets`
-- **Cache control**: `public, max-age=86400`
-- **Use case**: Images, stylesheets, scripts, and other static assets
-
-#### 2. Dynamic Content (30 minutes)
-
-- **Route patterns**: `/posts` and other dynamic endpoints
-- **Cache control**: `public, max-age=1800`
-- **Use case**: API responses that change infrequently (blog posts, product listings)
-
-#### 3. User-Specific Content (5 minutes)
-
-- **Route patterns**: `/users`, `/users/profile` (authenticated)
-- **Cache control**: `private, max-age=300`
-- **Use case**: User profiles, settings, and personalized content
-
-#### 4. Real-Time Content (No cache)
-
-- **Route patterns**: `/live`, `/notifications`, `/realtime`
-- **Cache control**: `no-cache, no-store, must-revalidate`
-- **Use case**: Live updates, notifications, real-time data
-
-### Caching Rules
-
-The middleware applies intelligent caching rules:
-
-- **Only GET requests** are cached
-- **Authenticated requests** to sensitive endpoints (`/admin`, `/auth`) are never cached
-- **Route-based caching** automatically selects the appropriate strategy
-- **Default fallback** to dynamic caching for unmatched routes
-
-### Customizing Caching
-
-#### Adding New Caching Strategies
-
-```typescript
-// src/config/cache.ts
-const cacheStrategies = {
-  // Add your custom caching strategy
-  custom: cache({
-    cacheName: "custom-content",
-    cacheControl: "public, max-age=3600", // 1 hour
-    vary: ["Accept-Encoding"],
-  }),
-};
-```
-
-#### Modifying Caching Rules
-
-```typescript
-// src/middlewares/cache.middleware.ts
-// Add custom route patterns
-if (path.includes("/api/products")) {
-  return cacheStrategies.dynamic(c, next);
-}
-```
-
-#### Disabling Caching for Specific Routes
-
-```typescript
-// In your route handler
-app.get("/no-cache-route", (c) => {
-  c.header("Cache-Control", "no-cache, no-store, must-revalidate");
-  return c.json({ data: "This won't be cached" });
-});
-```
-
 ## 🔨 Development Guidelines
 
 ### Adding New Features
@@ -290,40 +210,6 @@ app.get("/no-cache-route", (c) => {
    // src/controllers/routes.ts
    import newRouter from "./new/route";
    export const routes = [authRouter, userRouter, newRouter];
-   ```
-
-### Implementing Caching
-
-The caching middleware is automatically applied to all routes. To customize caching for your endpoints:
-
-1. **Use existing strategies** by following route naming patterns:
-
-   ```typescript
-   // Automatically gets static caching (24h)
-   app.get("/static/logo.png", handler);
-
-   // Automatically gets dynamic caching (30min)
-   app.get("/posts", handler);
-
-   // Automatically gets user-specific caching (5min)
-   app.get("/users/profile", authenticatedHandler);
-   ```
-
-2. **Override caching** in specific route handlers:
-
-   ```typescript
-   app.get("/special-route", (c) => {
-     c.header("Cache-Control", "public, max-age=7200"); // 2 hours
-     return c.json({ data: "Custom cached content" });
-   });
-   ```
-
-3. **Add new route patterns** to the caching middleware:
-   ```typescript
-   // src/middlewares/cache.middleware.ts
-   if (path.includes("/your-new-pattern")) {
-     return cacheStrategies.dynamic(c, next);
-   }
    ```
 
 ## 📞 Support
