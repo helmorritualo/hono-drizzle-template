@@ -113,7 +113,7 @@ COOKIE_SECRET=your-cookie-secret-key-here
 3. **Generate and Push Schema**:
 
    ```bash
-   # Generate SQL migrations files in ./Drizzle Folder(auto-generated)
+   # Generate SQL migrations files in ./Drizzle/megration Folder(auto-generated)
    npm run db:generate
 
    # Apply schema to database
