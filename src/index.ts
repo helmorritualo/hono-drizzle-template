@@ -14,7 +14,6 @@ import cleanExpiredToken from "./jobs/clean-expired-tokens";
 const app = new Hono<{ Variables: JwtVariables }>();
 
 // Middlewares
-app.use("*", logger());
 app.use(secureHeaders());
 app.use("*", logger());
 app.use(
@@ -26,7 +25,7 @@ app.use(
     exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
     credentials: true,
     maxAge: 600,
-  })
+  }),
 );
 app.onError(errorHandlerMiddleware); // Custom error handler
 
