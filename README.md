@@ -9,6 +9,7 @@ A project-ready template for building modern Node.js APIs using [Hono](https://h
 - 🔐 **JWT Authentication** - Access & refresh token management
 - 🍪 **Secure Cookies** - HTTP-only cookie handling
 - 🛡️ **Security Headers** - Built-in security middleware
+- ✅ **Input Validation** - Global Zod-based request validation
 - 📝 **TypeScript** - Full type safety
 - 🎯 **Clean Architecture** - Organized folder structure
 - 🔄 **Token Refresh** - Automatic token rotation
@@ -56,7 +57,8 @@ hono-drizzle-template/
 │   │   └── clean-expired-tokens.ts
 │   ├── middlewares/            # Custom middlewares
 │   │   ├── authentication.ts   # JWT authentication middleware
-│   │   └── error-handler.ts    # Global error handler
+│   │   ├── error-handler.ts    # Global error handler
+│   │   └── global-validator.ts # Global input validation middleware
 │   ├── models/                 # Data access layer
 │   │   └── auth.model.ts       # Authentication model
 │   ├── utils/                  # Utility functions
@@ -163,6 +165,137 @@ GET /api/v1/profile            # Get user profile (requires auth)
 - **HTTP-Only Cookies**: Prevents XSS attacks
 - **Token Rotation**: Automatic refresh token rotation
 - **Input Validation**: Zod integration ready for request validation
+- **Global Validation Middleware**: Type-safe input validation with detailed error messages
+
+## ✅ Global Input Validator
+
+This template includes a powerful global input validation system using [Zod](https://zod.dev/) that provides type-safe request validation with detailed error reporting.
+
+### Features
+
+- **Multiple Validation Targets**: Validate JSON body, query parameters, route parameters, and headers
+- **Type Safety**: Full TypeScript integration with auto-completion
+- **Detailed Error Messages**: Comprehensive validation error reporting
+- **Easy Integration**: Simple middleware functions for quick implementation
+
+### Usage Examples
+
+#### 1. JSON Body Validation
+
+```typescript
+import { z } from "zod";
+import { validateJson, getValidatedData } from "@/middlewares/global-validator";
+
+// Define your schema
+const registerSchema = z.object({
+  email: z.string().email("Please provide a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+});
+
+// Use in your route
+authRouter.post("/register", validateJson(registerSchema), async (c) => {
+  // Get validated data with full type safety
+  const { email, password, name } = getValidatedData<z.infer<typeof registerSchema>>(c, "json");
+
+  // Your controller logic here...
+});
+```
+
+#### 2. Query Parameters Validation
+
+```typescript
+import { validateQuery } from "@/middlewares/global-validator";
+
+const searchSchema = z.object({
+  page: z.string().transform(Number).pipe(z.number().min(1)),
+  limit: z.string().transform(Number).pipe(z.number().min(1).max(100)),
+  search: z.string().optional(),
+});
+
+userRouter.get("/search", validateQuery(searchSchema), async (c) => {
+  const { page, limit, search } = getValidatedData<z.infer<typeof searchSchema>>(c, "query");
+  // Your logic here...
+});
+```
+
+#### 3. Route Parameters Validation
+
+```typescript
+import { validateParam } from "@/middlewares/global-validator";
+
+const userParamSchema = z.object({
+  id: z.string().transform(Number).pipe(z.number().positive()),
+});
+
+userRouter.get("/user/:id", validateParam(userParamSchema), async (c) => {
+  const { id } = getValidatedData<z.infer<typeof userParamSchema>>(c, "param");
+  // Your logic here...
+});
+```
+
+#### 4. Header Validation
+
+```typescript
+import { validateHeader } from "@/middlewares/global-validator";
+
+const headerSchema = z.object({
+  "x-api-key": z.string().min(1, "API key is required"),
+  "content-type": z.string().optional(),
+});
+
+apiRouter.use("/protected/*", validateHeader(headerSchema));
+```
+
+### Custom Validation Function
+
+You can also use the base `validator` function for custom validation targets:
+
+```typescript
+import { validator } from "@/middlewares/global-validator";
+
+// Custom middleware for specific validation needs
+const customValidator = validator("json", myCustomSchema);
+```
+
+### Error Response Format
+
+When validation fails, the middleware automatically returns a standardized error response:
+
+```json
+{
+  "success": false,
+  "error": {
+    "message": "Validation failed",
+    "issues": [
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "undefined",
+        "path": ["email"],
+        "message": "Required"
+      }
+    ]
+  }
+}
+```
+
+### Best Practices
+
+1. **Define schemas outside of route handlers** for reusability
+2. **Use descriptive error messages** to help API consumers
+3. **Combine with TypeScript inference** for full type safety
+4. **Validate early** in your request pipeline
+5. **Use transforms** for data conversion (strings to numbers, etc.)
+
+### Available Validation Functions
+
+- `validateJson(schema)` - Validates request body JSON
+- `validateQuery(schema)` - Validates query parameters
+- `validateParam(schema)` - Validates route parameters
+- `validateHeader(schema)` - Validates request headers
+- `validator(target, schema)` - Base validation function
+- `getValidatedData<T>(context, target)` - Retrieves validated data with type safety
 
 ## 🔨 Development Guidelines
 
@@ -191,7 +324,18 @@ GET /api/v1/profile            # Get user profile (requires auth)
 
    ```typescript
    // src/controllers/new/new.controller.ts
+   import { z } from "zod";
+   import { validateJson, getValidatedData } from "@/middlewares/global-validator";
+
+   // Define validation schema
+   const newFeatureSchema = z.object({
+     name: z.string().min(1, "Name is required"),
+     description: z.string().optional(),
+   });
+
    export const handleNewFeature = async (c: Context) => {
+     // Get validated data with type safety
+     const data = getValidatedData<z.infer<typeof newFeatureSchema>>(c, "json");
      // Implementation
    };
    ```
@@ -200,8 +344,11 @@ GET /api/v1/profile            # Get user profile (requires auth)
 
    ```typescript
    // src/controllers/new/route.ts
+   import { validateJson } from "@/middlewares/global-validator";
+   import { newFeatureSchema } from "./schemas"; // Optional: separate schema file
+
    const newRouter = new Hono();
-   newRouter.post("/endpoint", handleNewFeature);
+   newRouter.post("/endpoint", validateJson(newFeatureSchema), handleNewFeature);
    export default newRouter;
    ```
 
@@ -211,6 +358,27 @@ GET /api/v1/profile            # Get user profile (requires auth)
    import newRouter from "./new/route";
    export const routes = [authRouter, userRouter, newRouter];
    ```
+
+### Schema Organization
+
+For better maintainability, consider creating separate schema files:
+
+```typescript
+// src/controllers/new/schemas.ts
+import { z } from "zod";
+
+export const createSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email format"),
+});
+
+export const updateSchema = createSchema.partial(); // All fields optional
+
+export const querySchema = z.object({
+  page: z.string().transform(Number).pipe(z.number().min(1)),
+  search: z.string().optional(),
+});
+```
 
 ## 📞 Support
 
